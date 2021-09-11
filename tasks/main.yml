@@ -1,0 +1,67 @@
+---
+
+- name: 'Create loki system user'
+  user:
+    name: loki
+    state: present
+    system: yes
+  become: yes
+
+- name: 'Ensure config directory exist.'
+  file:
+    path: "{{ loki_config_dir }}"
+    state: directory
+    owner: loki
+    group: loki
+    mode: '0755'
+  become: yes
+
+- name: 'Ensure data directory exist.'
+  file:
+    path: "{{ loki_data_dir }}"
+    state: directory
+    owner: loki
+    group: loki
+    mode: '0755'
+  become: yes
+
+- name: 'Download and unarchive loki with version {{ loki_version }}'
+  unarchive:
+    src: "https://github.com/grafana/loki/releases/download/v{{ loki_version }}/loki-linux-amd64.zip"
+    dest: "/usr/local/bin"
+    remote_src: yes
+    creates: '/usr/local/bin/loki-linux-amd64'
+  become: yes
+
+- name: Create symlink.
+  file:
+    src: "/usr/local/bin/loki-linux-amd64"
+    dest: "{{ loki_executable }}"
+    state: link
+  become: yes
+  notify:
+    - restart_loki
+
+- name: 'Copy systemd service file.'
+  template: 
+    src: loki.service.j2 
+    dest: /etc/systemd/system/loki.service
+  become: yes
+  register: systemd
+
+- name: 'Systemd daemon reload'
+  systemd:
+    daemon_reload: yes
+  become: yes
+  when: systemd.changed
+
+- name: 'Copy loki config file'
+  template:
+    src: config.yml.j2 
+    dest: '{{ loki_config_dir }}/config.yml'
+    owner: loki
+    group: loki
+    mode: '0644'
+  become: yes
+  notify:
+    - restart_loki

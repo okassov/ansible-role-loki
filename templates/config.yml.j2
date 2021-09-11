@@ -1,0 +1,30 @@
+auth_enabled: {{ loki_auth_enabled }}
+
+server:
+  http_listen_port: {{ loki_listen_port }}
+
+ingester:
+  {{ loki_ingester | to_nice_yaml | indent(2) }}
+
+limits_config:
+  {{ loki_limits_config | to_nice_yaml | indent(2) }}
+
+schema_config:
+  configs:
+{% for config in loki_schema_config %}
+  - from: {{ config.from }}
+{{ config.config | to_nice_yaml | indent(4, True) }}
+{% endfor %}
+
+storage_config:
+{{ loki_storage_config | to_nice_yaml | indent(2, True) }}
+
+chunk_store_config:
+  {{ loki_chunk_store_config | to_nice_yaml | indent(2) }}
+
+table_manager:
+  {{ loki_table_manager | to_nice_yaml | indent(2) }}
+
+compactor:
+  {{ loki_compactor | to_nice_yaml | indent(2) }}
+
